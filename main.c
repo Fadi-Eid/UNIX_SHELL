@@ -19,6 +19,8 @@ int main(void)
 {
     char* args[MAX_LINE/2 + 1]; // each part of the command only hold 41 chars max
     int should_run = 1;         // set to 1 to exit
+    char lastCommand[MAX_LINE];
+    int isLastCommand = 0;
 
     while(should_run)
     {
@@ -40,6 +42,23 @@ int main(void)
         }
 
         int NParams;      // variable to store the number of parameters
+
+        if(strcmp(command, "!!\n") == 0) // execute the last command
+        {
+            if(isLastCommand == 0)
+            {
+                continue;
+            }
+
+            strcpy(command, lastCommand);
+        }
+        else
+        {
+            strcpy(lastCommand, command);
+            isLastCommand = 1;
+        }
+
+
        if(parseCommand(command, strlen(command), args, &NParams) == -1 || NParams == 0)
         {
             continue;
@@ -50,6 +69,7 @@ int main(void)
             printf("Shell released\n\n");
             break;
         }
+
 
          if(strcmp(args[0], "clear") == 0)
          {
@@ -62,6 +82,7 @@ int main(void)
             // print the help menu here
             continue;
          }
+
         
          int conc = 0;
 
@@ -79,7 +100,11 @@ int main(void)
         if(pid == 0)
         {
             // Child process that executes the command
-            execvp(args[0], args);
+            if(execvp(args[0], args)==-1)
+            {
+                perror("execvp");
+                return ERROR_CODE;
+            }
 
         } else
         {
