@@ -92,6 +92,50 @@ int main(void)
             conc = 1;
         }
 
+        // check for input/output redirection
+        int inputRedIndex = -1;     // the index of the "<" operator
+        int outputRedIndex = -1;    // the index of the ">" operator
+
+       if(NParams>1)
+       {
+            if(strcmp(args[0], "<")==0)
+            {
+                printf("No command specified for input redirection\n");
+                continue;
+            }
+            if(strcmp(args[NParams-1], "<")==0)
+            {
+                printf("No file specified for input redirection\n");
+                continue;
+            }
+            if(strcmp(args[0], ">")==0)
+            {
+                printf("No command specified for output redirection\n");
+                continue;
+            }
+            if(strcmp(args[NParams-1], ">")==0)
+            {
+                printf("No file specified for output redirection\n");
+                continue;
+            }
+
+            for (int i = 0; args[i] != NULL; i++) {
+                if (strcmp(args[i], ">") == 0) {
+                    outputRedIndex = i;
+                }
+                else if (strcmp(args[i], "<") == 0) {
+                    inputRedIndex = i;
+                }
+            }
+
+            if(inputRedIndex!=-1 && outputRedIndex!=-1)
+            {
+                printf("The simultaneous use of input and output redirection is not supported\n");
+                continue;
+            }
+       }
+
+        
 
         // fork a child process to execute the command
         int pid = fork();
@@ -100,6 +144,39 @@ int main(void)
         if(pid == 0)
         {
             // Child process that executes the command
+
+            // if there is input redirection
+            if (outputRedIndex != -1) { // Output redirection
+            int fd = open(args[outputRedIndex + 1], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            if (fd == -1) {
+                perror("Error opening output file");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, STDOUT_FILENO) == -1) {
+                perror("Error redirecting output");
+                exit(EXIT_FAILURE);
+            }
+            close(fd);
+
+            args[outputRedIndex] = NULL;
+            args[outputRedIndex + 1] = NULL;
+        }
+        else if (inputRedIndex != -1) { // Input redirection
+            int fd = open(args[inputRedIndex + 1], O_RDONLY);
+            if (fd == -1) {
+                perror("Error opening input file");
+                exit(EXIT_FAILURE);
+            }
+            if (dup2(fd, STDIN_FILENO) == -1) {
+                perror("Error redirecting input");
+                exit(EXIT_FAILURE);
+            }
+            close(fd);
+
+            args[inputRedIndex] = NULL;
+            args[inputRedIndex + 1] = NULL;
+        }
+
             if(execvp(args[0], args)==-1)
             {
                 perror("execvp");
